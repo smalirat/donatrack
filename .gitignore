@@ -1,0 +1,6 @@
+.DS_Store
+.env
+application-local.properties
+target/
+node_modules/
+.idea/

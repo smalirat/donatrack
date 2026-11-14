@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="DATADOG_HTTP" class="ar.edu.utn.dds.k3003.logging.DatadogLogsAppender">
+        <apiKey>${DATADOG_LOGGER_API_KEY:-}</apiKey>
+        <site>us5.datadoghq.com</site>
+        <service>logistica</service>
+        <env>produccion</env>
+    </appender>
+
+    <!-- async para que el POST a Datadog no frene los requests -->
+    <appender name="DATADOG" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="DATADOG_HTTP"/>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="DATADOG"/>
+    </root>
+</configuration>

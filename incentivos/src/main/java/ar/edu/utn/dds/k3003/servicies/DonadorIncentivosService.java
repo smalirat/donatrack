@@ -1,0 +1,85 @@
+package ar.edu.utn.dds.k3003.servicies;
+
+import ar.edu.utn.dds.k3003.exceptions.DonadorNoEncontradoException;
+import ar.edu.utn.dds.k3003.exceptions.InsigniaNoEncontradaExpection;
+import ar.edu.utn.dds.k3003.exceptions.MisionNoEncontradaException;
+import ar.edu.utn.dds.k3003.model.DonadorIncentivos;
+import ar.edu.utn.dds.k3003.model.Insignia;
+import ar.edu.utn.dds.k3003.model.Mision;
+import ar.edu.utn.dds.k3003.repositories.Jpa.DonadoresIncentivosRepository;
+import ar.edu.utn.dds.k3003.repositories.Jpa.InsigniasRepository;
+import ar.edu.utn.dds.k3003.repositories.Jpa.MisionesRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+
+@Service
+public class DonadorIncentivosService {
+    DonadoresIncentivosRepository donadoresIncentivosRepository;
+    InsigniasRepository insigniasRepository;
+    MisionesRepository misionesRepository;
+
+    public DonadorIncentivosService(DonadoresIncentivosRepository donadoresIncentivosRepository,
+        InsigniasRepository insigniasRepository,
+        MisionesRepository misionesRepository){
+        this.donadoresIncentivosRepository = donadoresIncentivosRepository;
+        this.insigniasRepository = insigniasRepository;
+        this.misionesRepository = misionesRepository;
+    }
+
+    public DonadorIncentivos buscarOCrearDonador(String donadorId) {
+        return donadoresIncentivosRepository.findByDonadorID(donadorId)
+                .orElseGet(() -> donadoresIncentivosRepository.save(new DonadorIncentivos(donadorId)));
+    }
+
+    public void agregarInsignia(String donadorId, String insigniaId) {
+        Insignia insigniabuscada = insigniasRepository.findById(Long.parseLong(insigniaId))
+                .orElseThrow(() -> new InsigniaNoEncontradaExpection(insigniaId));
+
+        DonadorIncentivos donador = buscarOCrearDonador(donadorId);
+        donador.getInsigniasDonador().add(insigniabuscada);
+        donadoresIncentivosRepository.save(donador);
+    }
+
+    public void quitarInsignia(String donadorId, String insigniaId) {
+        Insignia insigniaBuscada = insigniasRepository.findById(Long.parseLong(insigniaId))
+                .orElseThrow(() -> new InsigniaNoEncontradaExpection(insigniaId));
+
+        DonadorIncentivos donador = buscarOCrearDonador(donadorId);
+        donador.getInsigniasDonador().removeIf(i -> i.getId().equals(insigniaBuscada.getId()));
+        donadoresIncentivosRepository.save(donador);
+    }
+
+    public void asignarMision(String donadorId, String misionId) {
+        Mision mision = misionesRepository.findById(Long.parseLong(misionId))
+                .orElseThrow(() -> new MisionNoEncontradaException(misionId));
+        DonadorIncentivos donador = buscarOCrearDonador(donadorId);
+        donador.setMisionActual(mision);
+        donadoresIncentivosRepository.save(donador);
+    }
+
+    public DonadorIncentivos obtenerDonador(String donadorId) {
+        return donadoresIncentivosRepository.findByDonadorID(donadorId)
+                .orElseThrow(() -> new DonadorNoEncontradoException("El donador " + donadorId + " no tiene insignias ni misiones asignadas"));
+    }
+
+    public List<DonadorIncentivos> obtenerTodos() {
+        return donadoresIncentivosRepository.findAll();
+    }
+
+    public void eliminarDonador(String donadorId) {
+        DonadorIncentivos donador = buscarOCrearDonador(donadorId);
+        donador.getInsigniasDonador().clear(); // esta limpiando la tabla intermedia
+        donadoresIncentivosRepository.save(donador);
+        donadoresIncentivosRepository.delete(donador);
+    }
+
+    public void eliminarTodos() {
+        donadoresIncentivosRepository.findAll().forEach(d -> {
+            d.getInsigniasDonador().clear();
+            donadoresIncentivosRepository.save(d);
+        });
+        donadoresIncentivosRepository.deleteAll();
+    }
+}
